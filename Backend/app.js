@@ -17,7 +17,7 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(helmet());
 
-app.user( async (req, res,next) => {
+app.use( async (req, res,next) => {
   try {
     const decision = await aj.protect(req, { requested: 5 }); // Deduct 5 tokens from the bucket
   console.log("Arcjet decision", decision);
