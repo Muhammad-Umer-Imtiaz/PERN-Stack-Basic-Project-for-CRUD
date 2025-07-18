@@ -8,47 +8,43 @@ import { sql } from "./config/db.js";
 import { aj } from "./libs/arcjet.js";
 
 dotenv.config({ path: "./config/.env" });
-const app = express();
 
+const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Middleware
 app.use(express.json());
 app.use(cors());
-
 app.use(morgan("dev"));
 app.use(helmet());
 
-app.use( async (req, res,next) => {
+// Arcjet Middleware
+app.use(async (req, res, next) => {
   try {
-    const decision = await aj.protect(req, { requested: 5 }); // Deduct 5 tokens from the bucket
-  console.log("Arcjet decision", decision);
+    const decision = await aj.protect(req, { requested: 5 });
+    console.log("Arcjet decision", decision);
 
-  if (decision.isDenied()) {
-    if (decision.reason.isRateLimit()) {
-      res.writeHead(429, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Too Many Requests" }));
-    } else if (decision.reason.isBot()) {
-      res.writeHead(403, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "No bots allowed" }));
-    } else {
-      res.writeHead(403, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Forbidden" }));
+    if (decision.isDenied()) {
+      if (decision.reason.isRateLimit()) {
+        return res.status(429).json({ error: "Too Many Requests" });
+      } else if (decision.reason.isBot()) {
+        return res.status(403).json({ error: "No bots allowed" });
+      } else {
+        return res.status(403).json({ error: "Forbidden" });
+      }
     }
-  } else if (decision.results.some(isSpoofedBot)) {
-    res.writeHead(403, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Forbidden" }));
-  } else {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ message: "Hello World" }));
-  }
-  next()
+
+    next();
   } catch (error) {
-    console.log("Arcjet Error ",error)
-    next()
+    console.log("Arcjet Error", error);
+    next(); // Proceed even if Arcjet fails
   }
 });
 
+// Routes
 app.use("/api/products", productRoutes);
 
+// Connect DB and Start Server
 async function connectDB() {
   try {
     await sql`
@@ -57,14 +53,16 @@ async function connectDB() {
         name VARCHAR(100) NOT NULL,
         image VARCHAR(255) NOT NULL,
         price DECIMAL(10, 2) NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW())`;
-    console.log("Database Connected Successfully");
+        created_at TIMESTAMP DEFAULT NOW()
+      )`;
+    console.log("✅ Database Connected Successfully");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
   } catch (error) {
-    console.log(error);
+    console.log("❌ Database connection failed:", error);
   }
 }
-connectDB().then(
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  })
-);
+
+connectDB();
