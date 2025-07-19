@@ -67,7 +67,7 @@ const HomePage = () => {
                             {/* Modal */}
                             {isUpdate && productData.id === item.id && (
                                 <div className="fixed inset-0  bg-opacity-50 flex justify-center items-center z-50">
-                                    <div className="bg-transparent p-6 rounded-lg shadow-lg w-[400px]">
+                                    <div className="bg-black p-6 rounded-lg shadow-lg w-[400px]">
                                         <div className="flex justify-between items-center mb-4">
                                             <h2 className="text-xl font-semibold">Update Product</h2>
                                             <button onClick={() => setIsUpdate(false)} className="text-gray-500 hover:text-black">✖</button>
